@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    h1 {
+      font-family: "Avantgarde", TeX Gyre Adventor, URW Gothic L, sans-serif;
+      display: flex;
+      align-items: center; /* Added to center the image vertically */
+    }
+    p, button, #info {
+      font-family: papyrus, fantasy;
+      font-size: 20px;
+    }
+    canvas {
+      border: 5px solid black;
+      background-color: white;
+      display: block; /* Added to make the canvas a block-level element */
+      margin: 0 auto; /* Added to center the canvas horizontally */
+    }
+    body {
+      background-color: #add8e6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column; /* Added to align content vertically */
+      min-height: 100vh;
+      margin: 0;
+    }
+    #info {
+      margin-top: 20px;
+      padding-left: 20px;
+    }
+    .color-box {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 5px solid black;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>
+    <img src="logoDrawception.PNG" alt="Drawception Logo" width="400" height="200">
+    <!-- Drawception -->
+  </h1>
+  <p>Prompt: <span id="prompt"></span></p>
+  <p>Time remaining: <span id="time">30</span> seconds</p>
+  <p>Computer Guess: <span id="computerGuess"></span></p>
+  <canvas id="canvas" width="200" height="200"></canvas>
+  <button onclick="clearCanvas()">Clear</button>
+  <button onclick="submitDrawing()">Submit</button>
+  <button onclick="playAgain()">Play Again</button> <!-- Play Again button -->
+
+  <div id="sliderContainer">
+    <label for="roughnessSlider">Roughness/Smoothness:</label>
+    <input type="range" id="roughnessSlider" min="1" max="10" value="5" onchange="updateParameters()">
+
+    <label for="colorSlider">Color:</label>
+    <input type="range" id="colorSlider" min="0" max="360" value="0" onchange="updateParameters()">
+    <div id="colorBox" class="color-box"></div>
+
+    <label for="sizeSlider">Pen Size:</label>
+    <input type="range" id="sizeSlider" min="1" max="20" value="5" onchange="updateParameters()">
+  </div>
+
+  <div id="info">
+    <p>Coordinates: <span id="coordinates"></span></p>
+    <p>Color: <span id="color"></span></p>
+  </div>
+
+  <div id="scoreBox">Score: <span id="score">0</span></div> <!-- Score box -->
+
+  <script>
+    const prompts = [
+      "heart",
+      "house",
+    ];
+
+    const colorNames = [
+      "Red", "Orange", "Yellow", "Green", "Blue", "Indigo", "Violet"
+    ];
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+    let timerId;
+
+    function setRandomPrompt() {
+      const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+      document.getElementById("prompt").textContent = randomPrompt;
+    }
+
+    // Set a random prompt for the user to draw
+    setRandomPrompt();
+
+    // Event listeners for drawing on the canvas
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mouseup", stopDrawing);
+    canvas.addEventListener("mousemove", draw);
+
+    var prevX = 0;
+    var prevY = 0;
+
+    // Start drawing
+    function startDrawing(e) {
+      prevX = e.clientX - canvas.getBoundingClientRect().left;
+      prevY = e.clientY - canvas.getBoundingClientRect().top;
+      drawing = true;
+    }
+
+    // Stop drawing
+    function stopDrawing() {
+      drawing = false;
+    }
+
+    // Draw on the canvas
+    function draw(e) {
+      if (!drawing) return;
+      ctx.lineWidth = document.getElementById("sizeSlider").value;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(prevX, prevY);
+      ctx.lineTo(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
+      prevX = e.clientX - canvas.getBoundingClientRect().left;
+      prevY = e.clientY - canvas.getBoundingClientRect().top;
+      ctx.strokeStyle = `hsl(${document.getElementById("colorSlider").value}, 100%, 50%)`;
+      ctx.stroke();
+
+      // Update coordinates and color in the info box
+      document.getElementById("coordinates").textContent = `X: ${prevX}, Y: ${prevY}`;
+      document.getElementById("color").textContent = `Hue: ${document.getElementById("colorSlider").value}`;
+    }
+
+    // Clear the canvas
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Submit the drawing and trigger computer guessing
+    function submitDrawing() {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const imgURI = canvas.toDataURL('image/png')
+      const imgData = imgURI.split(',')[1];
+      const body1 = JSON.stringify(imgData);
+      var guess = computerGuess(body1);
+      console.log(guess);
+      console.log(typeof guess);
+      document.getElementById("computerGuess").textContent = "" + guess;
+    }
+
+    // Perform stable diffusion on the image data
+    function stableDiffusion(imageData) {
+      // Implementation of stable diffusion algorithm
+      // Modify the image data using image processing techniques
+      return modifiedImageData;
+    }
+
+    // Computer guessing based on modified image
+    function computerGuess(body1) {
+      // Implementation of the computer guessing algorithm
+      // Analyze the modified image and make a guess based on the prompt
+      console.log(typeof body1);
+      console.log(body1);
+      const apiKey = 'acc_123214ecf4f0a57';
+      const apiSecret = 'fee73d3021ed776c284ef5c6797f2306';
+      const url = "https://api.imagga.com/v2/tags?image_base64=" + encodeURIComponent(body1);
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Basic ' + btoa(apiKey + ':' + apiSecret)
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        var guess = data.result.tags[0].tag.en;
+        const confidence = data.result.tags[0].confidence;
+        console.log(guess);
+        console.log(typeof guess)
+        document.getElementById("computerGuess").textContent = "" + guess;
+        //console.log(confidence);
+        return guess;
+      })
+      .catch(error => console.log(error));
+    }
+
+    // Update parameters based on slider values
+    function updateParameters() {
+      ctx.lineWidth = document.getElementById("sizeSlider").value;
+      const colorValue = document.getElementById("colorSlider").value;
+      const colorBox = document.getElementById("colorBox");
+      colorBox.style.backgroundColor = `hsl(${colorValue}, 100%, 50%)`;
+      const colorName = colorNames[Math.floor(colorValue / 60)];
+      colorBox.title = colorName;
+    }
+
+    // Timer function
+    function startTimer(duration, display) {
+      let timer = duration;
+      display.textContent = timer;
+
+      timerId = setInterval(function () {
+        timer--;
+        display.textContent = timer;
+
+        if (timer <= 0) {
+          clearInterval(timerId);
+          display.textContent = "Time's up!";
+          canvas.removeEventListener("mousedown", startDrawing);
+          canvas.removeEventListener("mouseup", stopDrawing);
+          canvas.removeEventListener("mousemove", draw);
+        }
+      }, 1000);
+    }
+
+    // Start the timer
+    startTimer(30, document.getElementById("time"));
+
+    // Play Again button functionality
+    function playAgain() {
+      clearInterval(timerId);
+      document.getElementById("time").textContent = "30";
+      setRandomPrompt();
+      clearCanvas();
+      canvas.addEventListener("mousedown", startDrawing);
+      canvas.addEventListener("mouseup", stopDrawing);
+      canvas.addEventListener("mousemove", draw);
+      startTimer(30, document.getElementById("time"));
+    }
+  </script>
+</body>
+</html>
